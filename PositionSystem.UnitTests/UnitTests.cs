@@ -280,7 +280,6 @@ namespace PositionSystem.UnitTests
         }
 
         [TestMethod]
-
         // internal IEnumerable<TResult> GetBoxPositions()
         public void GetBoxPositionsTest()
         {
@@ -452,7 +451,7 @@ namespace PositionSystem.UnitTests
                     }
                 }
             };
-
+            
             using (var scope = Container.BeginLifetimeScope())
             {
                 foreach (var testRow in testData)
