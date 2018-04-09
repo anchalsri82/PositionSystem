@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
+        xmlns:local="clr-namespace:PositionSystem.UI"
         Title="MainWindow" Height="350" Width="525">
     <Window.Resources>
         <!--<SolidColorBrush Color="Red" x:Key="RedBrush"/>
@@ -17,13 +18,48 @@
             <Setter Property="Background" Value="Tomato"/>
             <Setter Property="FontWeight" Value="Bold"/>
         </Style>
+        <Style TargetType="Button" x:Key="MyButtonTemplateStyle">
+            <!-- Explicit Style, with keys-->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Fill="SpringGreen"/>
+                            <TextBlock Text="Hello"></TextBlock>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style BasedOn="{StaticResource MyButtonStyle}" TargetType="Button" x:Key="MyButtonStyle1">
             <!-- Explicit Style, with keys-->
             <Setter Property="Foreground" Value="White"/>
         </Style>
+
+        <DataTemplate x:Key="MyDataTemplate">
+            <TextBlock Text="{Binding Name}" />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:Manager}">
+            <WrapPanel>
+                <TextBlock Text="{Binding Name}" />
+                <TextBlock Text="{Binding Address}" />
+            </WrapPanel>
+        </DataTemplate>
+        <local:DateConverter x:Key="DateTimeConverter"/>
+
+        <Style TargetType="TextBox">
+            <Style.Triggers>
+                <Trigger Property="Validation.HasErrors" Value="true">
+                    <Setter Property="ToolTip" Value="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors).CurrentItem.ErrorContent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition/>
             <RowDefinition />
             <RowDefinition/>
             <RowDefinition/>
@@ -32,9 +68,11 @@
             <RowDefinition/>
             <RowDefinition/>
             <RowDefinition/>
+            <RowDefinition Height="100"/>
+            <RowDefinition Height="100"/>
             <RowDefinition/>
             <RowDefinition/>
-            <RowDefinition/>
+            <RowDefinition/><!--14-->
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
@@ -112,5 +150,104 @@
                 </Style>
             </TextBlock.Style>
         </TextBlock>
+        <Button Grid.Row="11" Grid.Column="0" Style="{StaticResource MyButtonTemplateStyle}" Content="Button with Control Template Style" Height="70" Width="200"></Button>
+
+        <Button Grid.Row="10" Grid.Column="0" Content="Button with Control Template" Height="70" Width="200">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Ellipse Fill="Red"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Label Grid.Row="12" Grid.Column="0" Content="{Binding Person}" Foreground="Red"></Label>
+        <Label Grid.Row="12" Grid.Column="1" Content="{Binding Person}" Foreground="Red">
+            <Label.ContentTemplate>
+                <DataTemplate>
+                    <Label Content="{Binding Name}" />
+                </DataTemplate>
+            </Label.ContentTemplate>
+        </Label>
+        <ContentPresenter Grid.Row="13" Grid.Column="1" Content="{Binding Person}">
+            <ContentPresenter.ContentTemplate>
+                <DataTemplate>
+                    <WrapPanel>
+                        <TextBlock Text="{Binding Name}" />
+                        <TextBlock Text="{Binding DateTimeAdded, Converter={StaticResource DateTimeConverter}}"/>               
+                    </WrapPanel> 
+                </DataTemplate>
+            </ContentPresenter.ContentTemplate>
+        </ContentPresenter>
+        <ContentPresenter ContentTemplate="{StaticResource MyDataTemplate}"  Grid.Row="13" Grid.Column="0" Content="{Binding Person}"/>
+        <!--DataTemplate defined on -->
+        <Label Grid.Row="14" Grid.Column="0" Content="{Binding Manager}"/>
     </Grid>
+    <!-- Logical Vs Visu  al Tree
+    https://www.tutorialspoint.com/wpf/wpf_elements_tree.htm
+    https://docs.microsoft.com/en-us/dotnet/framework/wpf/advanced/trees-in-wpf
+    https://docs.microsoft.com/en-us/dotnet/framework/wpf/advanced/property-value-inheritance
+    The logical tree in WPF defines the following −
+        Dependency properties.
+        Static and dynamic resources.
+        Binding the elements on its name etc.
+        Logical tree does not show inner control of the tree.
+    Visual tree is used for −
+        Represents all of the elements in our UI which are rendered on to the screen.
+        Rendering the visual objects.
+        Rendering the layouts.
+        The routed events mostly travel along the visual tree, not the logical tree.
+        Use snoop tool to see the visual tree
+        Or use WPF Tree Visualizer in debug mode.
+    -->
+    <!--
+    Dependency Property can used over a CLR property in the following scenarios −
+        * If you want to set the style.
+        * If you want data binding.
+        * If you want to set with a resource (a static or a dynamic resource).
+        * If you want to support animation.
+    Dependency properties are used in conjunction with normal CLR property.
+    It always ends with property, declared as static and readonly.
+        Basically, Dependency Properties offer a lot of functionalities that you won’t get by using a CLR property.
+        The main difference between dependency properties and other CLR properties are listed below −
+        * CLR properties can directly read/write from the private member of a class by using getter and setter. 
+        * In contrast, dependency properties are not stored in local object.
+        * Dependency properties are stored in a dictionary of key/value pairs which is provided by the DependencyObject class. 
+        * It also saves a lot of memory because it stores the property when changed. It can be bound in XAML as well.
+    
+    The advantages of dependency properties are
+    Reduced memory footprint: 
+        It's a huge dissipation to store a field for each property when you think that over 90% of the properties of a UI control typically stay at its initial values. Dependency properties solve these problems by only store modified properties in the instance. The default values are stored once within the dependency property.
+    Value inheritance:
+        When you access a dependency property the value is resolved by using a value resolution strategy. If no local value is set, the dependency property navigates up the logical tree until it finds a value. When you set the FontSize on the root element it applies to all textblocks below except you override the value.
+    Change notification:
+        Dependency properties have a built-in change notification mechanism. By registering a callback in the property metadata you get notified, when the value of the property has been changed. This is also used by the databinding.
+    Participation in animation, styles and templates A Dependency Property can animate, set styles using style setters and even provide templates for the control.
+    CallBacks 
+        Whenever a property is changed you can have a callback invoked.
+    Resources 
+        You can define a Resource for the definition of a Dependency Property in XAML.
+    Overriding Metadata 
+        You can define certain behaviours of a Dependency Property using PropertyMetaData. Thus, overriding a metadata from a derived property will not require you to redefine or re-implement the entire property definition.
+    
+    DependencyObject defines the base class that can register and own a dependency property.
+    
+    DispatcherObject is meant for any object that wants to be accessed only in the thread that created it
+    
+    -->
+    <!--
+    Panel is base class of all Panels
+    Stack Panel - Doesn't adjust with window size 
+    Wrap Panel - Adjust and wrap based on window size
+                    The WrapPanel positions the children from left to right one after other, as long as they fit into the line, and then continues with the next line. The panel's orientation can be horizontal or vertical.
+    Canvas - Canvas is a panel that enables you to explicitly position controls. Canvas defines the attached properties Left, Right, Top, Bottom, that can be used by the children for positioning within the panel. A simple panel, which mimics the WinForms way of doing things. It allows you to assign specific coordinates to each of the child controls, giving you total control of the layout. This is not very flexible though, because you have to manually move the child controls around and make sure that they align the way you want them to. Use it (only) when you want complete control of the child control positions.
+    Dock Panel - DockPanel defines the attached property Dock, which we can set in the children of the controls to the values Left, Right, Top, Bottom. By default, the last control, if not given a specific dock position, will fill the remaining space. You can achieve the same with the Grid panel, but for the simpler situations, the DockPanel will be easier to use. Use the DockPanel whenever you need to dock one or several controls to one of the sides, like for dividing up the window into specific areas.
+    Grid - A Grid can contain multiple rows and columns. You define a height for each of the rows and a width for each of the columns, in either an absolute amount of pixels, in a percentage of the available space or as auto, where the row or column will automatically adjust its size depending on the content. Use the Grid when the other panels doesn't do the job, e.g. when you need multiple columns and often in combination with the other panels.
+    -->
+    
+    <!--
+     The default UpdateSourceTrigger value of the Text property is LostFocus and not PropertyChanged.
+        If you set the UpdateSourceTrigger value to Explicit, you must call the UpdateSource method or the changes will not propagate back to the source.
+    -->
 </Window>
