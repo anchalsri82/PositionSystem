@@ -1,5 +1,5 @@
-﻿using System;
-using System.ComponentModel;
+﻿using PositionSystem.UI.Models;
+using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -23,64 +23,7 @@ namespace PositionSystem.UI
             throw new NotImplementedException();
         }
     }
-    public class Person : INotifyPropertyChanged, IDataErrorInfo
-    {
-        private string _name;
 
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-            set
-            {
-                _name = value;
-                OnPropertyChanged("Name");
-            }
-        }
-        public string Address { get; set; }
-        public string Phone { get; set; }
-        public DateTime DateTimeAdded { get; set; }
-
-        #region IDataErrorInfo members
-        public string this[string propertyName]
-        {
-            get
-            {
-                string result = string.Empty;
-                switch (propertyName)
-                {
-                    case "Name":
-                        if (string.IsNullOrEmpty(Name))
-                            result = "Name is required!";
-                        break;
-                    case "Address":
-                        if (string.IsNullOrEmpty(Address))
-                            result = "Address is required";
-                        break;
-
-                }
-                return result;
-            }
-        }
-        public string Error => throw new NotImplementedException();
-        #endregion
-
-        #region INotifyPropertyChanged members
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void OnPropertyChanged(string property)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
-        }
-        #endregion
-    }
-
-    public class Manager : Person
-    {
-
-    }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -101,6 +44,7 @@ namespace PositionSystem.UI
 
         public MainWindow()
         {
+            
             Person = new Person
             {
                 Name = "Ramesh Kumar",

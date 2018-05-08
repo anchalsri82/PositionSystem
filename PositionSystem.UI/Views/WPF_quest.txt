@@ -1,0 +1,361 @@
+﻿* Benefits of WPF over Winforms
+---------------------------------
+	A - Any where execution (XAML)     B - Binding      C - Common look and feel (Style)
+	D - Directive programming          E - Expression Blend and Animation.
+	F - Faster execution (Use DirectX, GPU)             G - Graphic Independence - DIP (Device Independent Pixel)
+
+* WPF class hierarchy
+-----------------------
+	Object
+	Dispatcher (Threading)
+	Dependency (Resolving Dynamically/Property Inheritance) 
+	Visual (Visuals)
+	UIElement (events, layout, focus) 
+	FrameworkElement (styles, databinding, resources) 
+
+* Binding
+-----------
+	1. One way 2. Two way 3. One Time 4. One way to source
+	Template binding vs relative source templatedParent 
+		<ControlTemplate TargetType="{x:Type Button}"> <Border BorderBrush="{TemplateBinding Property=Background}">
+			<ContentPresenter />   </Border></ControlTemplate>
+		<ControlTemplate TargetType="{x:Type Button}"> <Border BorderBrush="{Binding RelativeSource={RelativeSource 
+		TemplatedParent}, Path=Background}"> <ContentPresenter /> </Border> </ControlTemplate>
+
+		-  TemplateBindings are evaluated at compile time against the type specified in the control template. This allows for 
+		much faster instantiation of compiled templates. Just fumble the name in a templatebinding and you'll see that the 
+		compiler will flag it. The binding markup is resolved at runtime. While slower to execute, the binding will resolve 
+		property names that are not visible on the type declared by the template. By slower,  I'll point out that its kind of 
+		relative since the binding operation takes very little of the application's cpu. If you were blasting control templates 
+		around at high speed you might notice it. In practice use the TemplateBinding when you can but don't fear the Binding.
+
+		TemplateBinding - More limiting than using regular Binding. More efficient than a Binding but it has less functionality:
+			Doesn't work with Two-Way
+			Only works inside a ControlTemplate's visual tree
+			Doesn't work with properties on Freezables
+			Doesn't work within a ControlTemplate's Trigger
+			Provides a shortcut in setting properties(not as verbose),e.g. {TemplateBinding targetProperty}
+			Doesn't allow value converting. They don't allow you to pass a Converter and don't automatically convert int to 
+			string for example (which is normal for a Binding).
+		Regular Binding - Does not have above limitations of TemplateBinding
+			Respects Parent Properties
+			Resets Target Values to clear out any explicitly set values
+			Example: <Ellipse Fill="{Binding RelativeSource={RelativeSource TemplatedParent},Path=Background}"/>
+
+* UpdateSourceTrigger
+-----------------------
+	Default, PropertyChanged, LostFocus, Explicit 
+	var binding = txt1.GetBindingExpression(TextBox.TextProperty); 		binding.UpdateSource();
+
+* Resources
+-------------
+	<Windows.Resources>
+		<custNs:Customer x:Key = "CustObj"> </Windows.Resources><Grid>
+		<TextBox Text = "{Binding CustomerCode, Source={StaticResource CustObj}}"</Grid>
+
+		<UserControl.Resources><ResourceDictionary> <ResourceDictionary.MergedDictionaries>
+					<ResourceDictionary Source="pack://application:,,,/PROJECTNAMESPACE (TestProject.Something);component/Dictionaries/Styles.xaml" /> 
+			</ResourceDictionary.MergedDictionaries>
+				<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/></ResourceDictionary></UserControl.Resources>
+
+	ResourceDictionary myResourceDictionary = new ResourceDictionary();
+
+	The solution to problem of loading duplicate merged resources is to put shared resource in App.xaml or include your dictionary 
+	from App.xaml. If you don’t have control over App.xaml, manually load your shared resources in code as
+	myResourceDictionary.Source = new Uri("Dictionary1.xaml", UriKind.Relative);
+	Application.Current.Resources.MergedDictionaries.Add(myResourceDictionary);
+
+	myResourceDictionary.Source = new Uri("Dictionary2.xaml", UriKind.Relative);
+	Application.Current.Resources.MergedDictionaries.Add(myResourceDictionary);
+
+	StaticResource is read once during the lifetime of our app. StaticResource will be resolved and assigned to the property 
+	during the loading of the XAML which occurs before the application is actually run. It will only be assigned once and 
+	any changes to resource dictionary ignored.
+
+	A DynamicResource assigns an Expression object to the property during loading but does not actually lookup the resource 
+	until runtime when the Expression object is asked for the value. This defers looking up the resource until it is 
+	needed at runtime. It will update the target if the source resource dictionary is changed. The value of a Dynamic 
+	Resoource is read every time it is used, so if we assign a new instance to it during the lifetime of our app, all 
+	reference of that resource will get an update.
+
+	<ResourceDictionary xmlns = "http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+		xmlns:x = "http://schemas.microsoft.com/winfx/2006/xaml"> 
+		<SolidColorBrush x:Key = "brushResource" Color = "Blue" />  </ResourceDictionary>
+
+	<Application.Resources> 
+		<ResourceDictionary Source = " XAMLResources\ResourceDictionaries\DictionaryWithBrush.xaml"/> 
+	</Application.Resources>
+
+* Value converters
+--------------------
+	<TextBlock Text="{Binding ElementName=txtValue, Path=Text, Converter={StaticResource YesNoToBooleanConverter}}"></TextBlock>
+
+	public class YesNoToBooleanConverter : IValueConverter {
+	public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) {
+						switch(value.ToString().ToLower()) {
+                                case "yes": case "oui": return true;
+                                case "no": case "non": return false; } return false; } }
+
+* Multivalue converters 
+-------------------------
+	A MultiBinding works just a regular Binding except it must have a Converter specified and can have 
+	multiple pieces of data bound to it, so when any of these change it fires a re-evaluation of the lot.
+	<Window.Resources> <local:NameMultiValueConverter x:Key="NameMultiValueConverter" /> </Window.Resources>
+		<TextBox Text="{Binding Path=FirstName, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox Text="{Binding Path=Surname, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock> <TextBlock.Text>
+                <MultiBinding Converter="{StaticResource MultiValueConverter}">
+                    <Binding Path="FirstName" />
+                    <Binding Path="Surname" />
+                </MultiBinding> </TextBlock.Text></TextBlock>
+	public class NameMultiValueConverter : IMultiValueConverter{
+	public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture) {
+       return String.Format("{0} {1}", values[0], values[1]);}}
+
+	I found more useful was to include the object itself as the first  Binding, and then use the extra  bindings simply for their 
+	triggers. What this lets you do is call methods on the object to aid in the production of your new value. This could save 
+	some duplicating of code if you already have a method that does the transformation  (for example builds a name or address 
+	string from its components) while still having the update triggered when any component changes.
+
+	So our IMultiValueConverter becomes (I have it doing a pointless task simply to show the difference)
+	public class DataClassMultiValueConverter : IMultiValueConverter {
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture){ 
+		if (values[0] is DataClass) {
+				DataClass data = values[0] as DataClass;
+				return String.Format("{0} {1} {2}", data.FirstName, data.Surname, data.ExtraData());
+			} else { return ""; } } }
+
+* Logical and Visual Trees (http://www.wpftutorial.net/logicalandvisualtree.html)
+----------------------------
+	Visual Tree - Represents all of the elements in your UI which render to an output device (typically, the screen)
+	Used for rendering, event routing, and locating resource (if an element has no logical parent)
+		VisualTreeHelper.GetParent(depObj)
+		VisualTreeHelper.GetChildren(depObj)
+
+	Logical Tree - Represents the essential structure of your UI. It closely matches the elemtns you declared in XAML, and 
+	excludes most visual elements create internally to help render the elements you declared. WPF use logical tree to determine 
+	several things including dependency property value inheritence, resource resolution and more.
+		LogicalTreeHelper.GetParent(depObj);
+		LogicalTreeHelper.GetChildren(depObj);
+	FrameworkElement.RemoveLogicalChild  
+	FrameworkElement.RemoveVisualChild
+	But they are protected internal method. Generally there are two ways to get around this.  
+     a. inherit and override or b. reflection call. 
+
+* CONTENT CONTROL Vs CONTENT PRESENTER
+----------------------------------------
+
+* Events
+----------
+	- Direct Event		-  is similar to events in Windows forms which are raised by the element in which the event is originated.
+	- Bubbling event	- begins with the element where the event is originated and travels up the visual tree to the topmost 
+						  element in the visual tree.
+	- Tunnel Event		- Event handlers on the element tree root are invoked and then the event travels down the visual tree to 
+						  all the children nodes until it reaches the element in which the event originated. It will always 
+						  start with a preview.
+
+	Custom routed events - register custom routed event using EventManager.RegisterRoutedEvent
+		public class MyCustomControl : Control { 
+      static MyCustomControl() { 
+         DefaultStyleKeyProperty.OverrideMetadata(typeof(MyCustomControl), 
+            new FrameworkPropertyMetadata(typeof(MyCustomControl)));  } 
+		
+      public override void OnApplyTemplate() { 
+         base.OnApplyTemplate();			
+         //demo purpose only, check for previous instances and remove the handler first 
+         var button  =  GetTemplateChild("PART_Button") as Button; 
+         if (button ! =  null) 
+         button.Click + =  Button_Click;   } 
+		
+      void Button_Click(object sender, RoutedEventArgs e) {  RaiseClickEvent(); } 
+		
+      public static readonly RoutedEvent ClickEvent = EventManager.RegisterRoutedEvent("Click", RoutingStrategy.Bubble, 
+         typeof(RoutedEventHandler), typeof(MyCustomControl)); 
+			
+      public event RoutedEventHandler Click {  add { AddHandler(ClickEvent, value); } 
+         remove { RemoveHandler(ClickEvent, value); }  } 
+		
+      protected virtual void RaiseClickEvent() {  RoutedEventArgs args = new RoutedEventArgs(MyCustomControl.ClickEvent); 
+         RaiseEvent(args);  } } }
+
+* Panels
+----------
+	1.	Stack Panel		- Stack panel is a simple and useful layout panel in XAML. In stack panel, child elements can be 
+							arranged in a single line, either horizontally or vertically, based on the orientation property.
+	2.	Wrap Panel		- In WrapPanel, child elements are positioned in sequential order, from left to right or from top to 
+							bottom based on the orientation property.
+	3.	Dock Panel		- DockPanel defines an area to arrange child elements relative to each other, either horizontally or 
+							vertically. With DockPanel you can easily dock child elements to top, bottom, right, left and 
+							center using the Dock property.
+	4.	Canvas Panel	- Canvas panel is the basic layout panel in which the child elements can be positioned explicitly using 
+							coordinates that are relative to the Canvas any side such as left, right, top and bottom.
+	5.	Grid Panel		- A Grid Panel provides a flexible area which consists of rows and columns. In a Grid, child elements 
+							can be arranged in tabular form.
+
+* Templates
+------------
+	Control Template - defines the visual appearance of a control.
+	<ControlTemplate x:Key = "ButtonTemplate" TargetType = "Button">
+         <Grid>  <Ellipse x:Name = "ButtonEllipse" Height = "100" Width = "150" >  <Ellipse.Fill> 
+                  <LinearGradientBrush StartPoint = "0,0.2" EndPoint = "0.2,1.4"> 
+                     <GradientStop Offset = "0" Color = "Red" /> 
+                     <GradientStop Offset = "1" Color = "Orange" /> 
+                  </LinearGradientBrush>  </Ellipse.Fill> </Ellipse> 
+            <ContentPresenter Content = "{TemplateBinding Content}"  HorizontalAlignment = "Center" VerticalAlignment = "Center" /> 
+         </Grid> 
+         <ControlTemplate.Triggers>  <Trigger Property = "IsMouseOver" Value = "True"> 
+               <Setter TargetName = "ButtonEllipse" Property = "Fill" > 
+                  <Setter.Value>  <LinearGradientBrush StartPoint = "0,0.2" EndPoint = "0.2,1.4"> 
+                        <GradientStop Offset = "0" Color = "YellowGreen" /> 
+                        <GradientStop Offset = "1" Color = "Gold" /></LinearGradientBrush></Setter.Value></Setter></Trigger> 
+
+* Commands
+-----------
+
+	RelayCommand allows you to inject the command's logic via delegates passed into its constructor. This approach allows for 
+	terse, concise command implementation in ViewModel classes. 
+	RelayCommand is a simplified variation of the DelegateCommand found in the Microsoft Composite Application Library.
+	The DelegateCommand allows delegating the commanding logic instead of requiring a handler in the code behind. It uses a 
+		delegate as the method of invoking a target handling method.
+	The DelegateCommand uses its delegate to invoke a CanExecute method or Execute method on the target object when the command 
+	is invoked. Because the class is generic, it enforces compile-time checking on the command parameters, which traditional 
+	WPF commands do not. Additionally, because it accepts delegates, it removes the need for creating a new command type for 
+	every instance where you need commanding.
+
+	RelayCommand
+	------------
+	public class RelayCommand : ICommand
+	{
+		#region Fields 
+		readonly Action<object> _execute;
+		readonly Predicate<object> _canExecute;
+		#endregion // Fields 
+		#region Constructors 
+		public RelayCommand(Action<object> execute) : this(execute, null) { }
+		public RelayCommand(Action<object> execute, Predicate<object> canExecute)
+		{
+			if (execute == null)
+				throw new ArgumentNullException("execute");
+			_execute = execute; _canExecute = canExecute;
+		}
+		#endregion // Constructors 
+		#region ICommand Members 
+		[DebuggerStepThrough]
+		public bool CanExecute(object parameter)
+		{
+			return _canExecute == null ? true : _canExecute(parameter);
+		}
+		public event EventHandler CanExecuteChanged
+		{
+			add { CommandManager.RequerySuggested += value; }
+			remove { CommandManager.RequerySuggested -= value; }
+		}
+		public void Execute(object parameter) { _execute(parameter); }
+		#endregion // ICommand Members 
+	}
+
+	DelegateCommand
+	----------------
+	public class DelegateCommand : ICommand {
+		private Action _executeMethod;
+		public DelegateCommand(Action executeMethod) {
+		_executedMethod = executedMethod;	} 
+		public bool CanExecute(object parameter) { return true; }
+		public event EventHandler CanExecuteChanged;
+		public void Execute(object parameter) { _executeMethod.Invoke(); } }
+
+	RoutedCommand
+	-------------
+	A routed command is a command object that does not know how to accomplish the task it represents. It simply represents the 
+	task/feature. When asked if it can execute and when told to execute, it simply delegates that responsibility off to somewhere 
+	else. A routed command does not determine if it can execute and what to do when executed. Instead, some routed events travel 
+	through the element tree, giving any element in the UI a chance to do the command’s work for it. It truly is just a semantic 
+	identifier: a named entity that represents a feature of a program. When a routed command is asked if it can execute, the 
+	routed PreviewCanExecute and CanExecute events tunnel down and bubble up the element tree. These events give all elements 
+	between the root of the tree (such as a Window) and the source element that references the command a chance to determine if 
+	the command can execute. When the command is told to execute, the PreviewExecuted and Executed routed events travel the same 
+	event route, checking to see if anybody cares to react to the event. If so, they can run a handler for the event, if not, the 
+	event finishes zapping the elements and nothing happens.
+	First, all controls using the same RoutedCommand will automatically be disabled when the command cannot execute. If you have ever used a program where clicking on enabled buttons does not actually do anything, you will appreciate this.
+    Second, there is less event handler code to write since most of the wiring is provided for you by the commanding system. You do not have to add event handlers for each UI element that executes the same command, whereas using events directly off of UI elements requires many handlers that all basically do the same thing.
+	Third, if you use my implementation of Model-View-Controller or Structural Skinning, using routed commands is an absolute must. Learn more about MVC here and Structural Skinning here.
+	Fourth, using routed commands makes it possible to decouple the Software Engineering team from the Visual Design team. The developers don’t have to worry about what type of element is consuming application functionality, just as long as the UI executes the right commands all is well. This also frees the designers from having to worry about such details so that they can focus on creating a great user experience.
+	Fifth, but certainly not last, using routed commands as part of your design process forces you to map functional requirements to commands up front. This process of taking a list of required features and translating them into RoutedCommand objects with meaningful names is invaluable to help the team as a whole understand the system they are about to build. It also creates a set of short terms that people can use to refer to features.
+
+	<Window.CommandBindings>
+        <CommandBinding Command="{x:Static local:Commands.Foo}" CanExecute="Foo_CanExecute" Executed="Foo_Executed" />
+    </Window.CommandBindings>
+    <Grid> <Button Command="{x:Static local:Commands.Foo}" Content="Do Foo!" HorizontalAlignment="Center" 
+      VerticalAlignment="Center" /> </Grid> </Window>
+
+	public static class Commands{ public static readonly RoutedCommand Foo = new RoutedCommand(); }
+
+	void Foo_CanExecute(object sender, CanExecuteRoutedEventArgs e) {
+            // The Window gets to determine if the Foo command can execute at this time.
+            e.CanExecute = true; }
+	void Foo_Executed(object sender, ExecutedRoutedEventArgs e) {
+            // The Window executes the command logic when the user wants to Foo.
+            MessageBox.Show("The Window is Fooing..."); }
+
+* Exception handling
+----------------------
+	You can trap unhandled exceptions at different levels:
+		AppDomain.CurrentDomain.UnhandledException - From all threads in the AppDomain.
+		Dispatcher.UnhandledException - From a single specific UI dispatcher thread.
+		Application.Current.DispatcherUnhandledException - From the main UI dispatcher thread in your WPF application.
+		TaskScheduler.UnobservedTaskException - From within each AppDomain that uses a task scheduler for asynchronous operations.
+
+* DispatcherPriority
+----------------------
+	 - If you need to execute a method asynchronously without blocking the UI thread, you can invoke the method on the Dispatcher 
+	   property of a UI element, and specify a System.Windows.Threading.DispatcherPriority that’s lower than the Render priority.
+		Invalid				-1 - This is an invalid priority.
+		Inactive			0 - Operations are not processed.
+		SystemIdle			1 - Operations are processed when the system is idle.
+		ApplicationIdle		2 - Operations are processed when the application is idle.
+		ContextIdle			3 - Operations are processed after background operations have completed.
+		Background			4 - Operations are processed after all other non-idle operations are completed.
+		Input				5 - Operations are processed at the same priority as input.
+		Loaded				6 - Operations are processed when layout and render has finished but just before items at input priority are serviced. Specifically this is used when raising the Loaded event.
+		Render				7 - Operations processed at the same priority as rendering.
+		DataBind			8 - Operations are processed at the same priority as data binding.
+		Normal				9 - Operations are processed at normal priority. This is the typical application priority.
+		Send				10  - Operations are processed before other asynchronous operations. This is the highest priority.
+
+	The global dispatcher object accessible by Application.Current.Dispatcher. Other dispatchers are possible by accessing 
+	Dispatcher.CurrentDispatcher
+
+	DispatcherOperation operation = Dispatcher.BeginInvoke(SomeMethod);
+	operation.Completed += DispatcherOperation_Completed;
+
+	// The Dispose() method is called at the end of the using statement. Calling Dispose on the DispatcherProcessingDisabled 
+	structure, which is returned from the call to DisableProcessing, will re-enalbe Dispatcher processing.
+	using (Dispatcher.DisableProcessing())
+	{
+		// Do work while the dispatcher processing is disabled.
+		Thread.Sleep(2000);
+	}
+
+* Transform
+-------------
+	Layout Transform vs Render Transform (https://wpfadventures.files.wordpress.com/2008/12/transforms1.png)
+		LayoutTransform
+		Measure
+		Arrange
+		RenderTransform
+		Render
+
+* 2 PHASE layout PROCESS  WPF (http://ikeptwalking.com/wpf-measureoverride-arrangeoverride-explained/)
+------------------------------
+		Measure
+		Render
+
+* Custom control  VS  USER control
+-----------------------------------
+
+
+* Performance
+---------------
+
+http://www.interact-sw.co.uk/iangblog/2013/02/14/wpf-async-too-fast
+http://www.interact-sw.co.uk/iangblog/2013/02/15/async-tweak-io

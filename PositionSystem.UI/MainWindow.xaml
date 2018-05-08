@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         xmlns:local="clr-namespace:PositionSystem.UI"
+        xmlns:localModels="clr-namespace:PositionSystem.UI.Models"
         Title="MainWindow" Height="350" Width="525">
     <Window.Resources>
         <!--<SolidColorBrush Color="Red" x:Key="RedBrush"/>
@@ -40,21 +41,8 @@
         <DataTemplate x:Key="MyDataTemplate">
             <TextBlock Text="{Binding Name}" />
         </DataTemplate>
-        <DataTemplate DataType="{x:Type local:Manager}">
-            <WrapPanel>
-                <TextBlock Text="{Binding Name}" />
-                <TextBlock Text="{Binding Address}" />
-            </WrapPanel>
-        </DataTemplate>
         <local:DateConverter x:Key="DateTimeConverter"/>
 
-        <Style TargetType="TextBox">
-            <Style.Triggers>
-                <Trigger Property="Validation.HasErrors" Value="true">
-                    <Setter Property="ToolTip" Value="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors).CurrentItem.ErrorContent}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -73,6 +61,8 @@
             <RowDefinition/>
             <RowDefinition/>
             <RowDefinition/><!--14-->
+            <RowDefinition/><!--15-->
+            
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
@@ -183,6 +173,8 @@
         <ContentPresenter ContentTemplate="{StaticResource MyDataTemplate}"  Grid.Row="13" Grid.Column="0" Content="{Binding Person}"/>
         <!--DataTemplate defined on -->
         <Label Grid.Row="14" Grid.Column="0" Content="{Binding Manager}"/>
+        <TextBox Grid.Row="15" Grid.Column="0" Text="{Binding Person.Name, Mode=TwoWay, ValidatesOnDataErrors=True}"></TextBox>
+        <TextBox Grid.Row="15" Grid.Column="1" Text="{Binding Person.Address, Mode=TwoWay, ValidatesOnDataErrors=True}"></TextBox>
     </Grid>
     <!-- Logical Vs Visu  al Tree
     https://www.tutorialspoint.com/wpf/wpf_elements_tree.htm

@@ -1,0 +1,79 @@
+﻿* .net assembly
+-----------------------
+	Parts of a Managed Module
+	a. PE32 or PE32+ header  
+		The standard Windows PE file header, which is similar to the Common Object File Format (COFF) header. 
+		If the header uses the PE32 format, the file can run on a 32-bit or 64-bit version of Windows. If the 
+		header uses the PE32+ format, the file requires a 64-bit version of Windows to run. This header also 
+		indicates type of file: GUI, CUI, or DLL, and contains a timestamp indicating when the file was built. 
+		For modules that contain only IL code, the bulk of the information in the PE32(+) header is ignored. 
+		For modules that contain native CPU code, this header contains information about the native CPU code.
+	b. CLR header
+		Contains the information (interpreted by the CLR and utilities) that makes this a
+		managed module. The header includes the version of the CLR required, some flags, the
+		MethodDef metadata token of the managed module’s entry point method (Main
+		method), and the location/size of the module’s metadata, resources, strong name, some
+		flags, and other less interesting stuff.
+	c. Metadata 
+		Every managed module contains metadata tables. There are two main types of tables:
+		tables that describe the types and members defined in your source code and tables that
+		describe the types and members referenced by your source code.
+	d. IL code 
+		Code the compiler produced as it compiled the source code. At runtime, the CLR
+		compiles the IL into native CPU instructions.
+	* Metadata has many uses. Here are some of them:
+		• Metadata removes the need for native C/C++ header and library files when compiling because
+		all the information about the referenced types/members is contained in the file that has the IL
+		that implements the type/members. Com-pilers can read metadata directly from managed modules.
+		• Microsoft Visual Studio uses metadata to help you write code. Its IntelliSense feature parses
+		metadata to tell you what methods, properties, events, and fields a type offers, and in the case
+		of a method, what parameters the method expects.
+		• The CLR’s code verification process uses metadata to ensure that your code performs only
+		“type-safe” operations. (I’ll discuss verification shortly.)
+		• Metadata allows an object’s fields to be serialized into a memory block, sent to another
+		machine, and then deserialized, re-creating the object’s state on the remote machine.
+		• Metadata allows the garbage collector to track the lifetime of objects. For any object, the
+		garbage collector can determine the type of the object and, from the metadata, know which
+		fields within that object refer to other objects.
+	* By specifying the /CLR command-line switch, the C++ compiler produces modules that contain managed code.
+	* C++ is unique in that it is the only compiler that allows the developer to write both managed and 
+	unmanaged code and have it emitted into a single module.
+	* An assembly is a logical grouping of one or more modules or resource files. It's smallest unit of reuse, 
+	security, and versioning. You can produce a single-file or a multifile assembly.
+	Assembly 
+		Manifest: describes the set of files in the assembly
+		Managed module - (IL and metadata)
+		Managed module - (IL and metadata)
+		Resource file - (.jpeg, .gif, .html, etc.)
+		Resource file - (.jpeg, .gif, .html, etc.)
+	* If you want to group a set of files into an assembly, you’ll use tools such as the assembly linker AL.exe
+	* Assemblies allow you to break up the deployment of the files while still treating all of the files as 
+	a single collection. If you want to determine exactly which versions of the .NET Framework are installed,
+	examine the subdirectories under the following directories:
+	%SystemRoot%\Microsoft.NET\Framework
+	%SystemRoot%\Microsoft.NET\Framework64
+	*    CLRVer.exe - shows all of CLR versions installed on a machine. It also show which version of CLR is 
+	being used by processes currently running on machine by using the –all switch or passing ID of the process 
+	*    C# compiler /platform switch to specify x86/x64/anycpu/anycpu32bitpreferred. Default anycpu
+	Or project’s property pages, clicking the Build tab, and then selecting an option in the Platform Target
+	*    If your application doesn’t require the additional memory afforded to a 64-bit process, then this is 
+	typically a good way to go as Visual Studio does not support edit-and-continue of x64 applications. 
+	Also 32-bit applications can interoperate with 32-bit DLLs/COM components if application needs it.
+	*    DumpBin.exe and CorFlags.exe, that you can use to examine the header information emitted in a managed 
+	module by the compiler.
+	*    PE32 header can run with a 32-bit or 64-bit address space, and a file with a PE32+ header requires 
+	a 64-bit address space
+
+	/platform Switch  Resulting Managed Module x86 Windows x64 Windows ARM Windows RT
+	anycpu (the default) PE32/agnostic, Runs as a 32-bit application, Runs as a 64-bit application, Runs as a 32-bit application
+	anycpu32bitpreferred PE32/agnostic, Runs as a 32-bit application, Runs as a 32-bit application, Runs as a 32-bit application
+	x86 PE32/x86, Runs as a 32-bit application, Runs as a WoW64 application, Doesn’t run 
+	x64 PE32+/x64, Doesn’t run Runs as a 64-bit application, Doesn’t run ARM PE32/ARM, Doesn’t run Doesn’t run, Runs as a 32-bit application
+
+	Environment’s Is64BitOperatingSystem property to determine if it's running on a 64-bit version of Windows.
+	Environment’s Is64BitProcess property to determine if it's running in a 64-bit address space.
+
+	A managed assembly compiled with the /platform:x86 switch will not be able to load into a 64-bit process 
+	at all, whereas an executable file compiled with this same switch would have loaded in WoW64 on a computer 
+	running a 64-bit version of Windows.
+

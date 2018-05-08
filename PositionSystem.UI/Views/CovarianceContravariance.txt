@@ -1,0 +1,187 @@
+﻿I had to think long and hard on how to explain this well. Explaining is seems to be just as hard as understanding it.
+
+Imagine you have a base class Fruit. And you have two subclasses Apple and Banana.
+
+     Fruit
+      / \
+Banana   Apple
+
+
+You create two objects:
+
+Apple a = new Apple();
+Banana b = new Banana();
+For both of these objects you can typecast them into the Fruit object.
+
+Fruit f = (Fruit)a;
+Fruit g = (Fruit)b;
+You can treat derived classes as if they were their base class.
+
+However you cannot treat a base class like it was a derived class
+
+a = (Apple)f; //This is incorrect
+Lets apply this to the List example.
+
+Suppose you created two Lists:
+
+List<Fruit> fruitList = new List<Fruit>();
+List<Banana> bananaList = new List<Banana>();
+You can do something like this...
+
+fruitList.Add(new Apple());
+and
+
+fruitList.Add(new Banana());
+because it is essentially typecasting them as you add them into the list. You can think of it like this...
+
+fruitList.Add((Fruit)new Apple());
+fruitList.Add((Fruit)new Banana());
+However, applying the same logic to the reverse case raises some red flags.
+
+bananaList.Add(new Fruit());
+is the same as
+
+bannanaList.Add((Banana)new Fruit());
+Because you cannot treat a base class like a derived class this produces errors.
+
+Just in case your question was why this causes errors I'll explain that too.
+
+Here's the Fruit class
+
+public class Fruit
+{
+    public Fruit()
+    {
+        a = 0;
+    }
+    public int A { get { return a; } set { a = value } }
+    private int a;
+}
+and here's the Banana class
+
+public class Banana: Fruit
+{
+   public Banana(): Fruit() // This calls the Fruit constructor
+   {
+       // By calling ^^^ Fruit() the inherited variable a is also = 0; 
+       b = 0;
+   }
+   public int B { get { return b; } set { b = value; } }
+   private int b;
+}
+So imagine that you again created two objects
+
+Fruit f = new Fruit();
+Banana ba = new Banana();
+remember that Banana has two variables "a" and "b", while Fruit only has one, "a". So when you do this...
+
+f = (Fruit)b;
+f.A = 5;
+You create a complete Fruit object. But if you were to do this...
+
+ba = (Banana)f;
+ba.A = 5;
+ba.B = 3; //Error!!!: Was "b" ever initialized? Does it exist?
+The problem is that you don't create a complete Banana class.Not all the data members are declared / initialized.
+
+Now that I'm back from the shower and got my self a snack heres where it gets a little complicated.
+
+In hindsight I should have dropped the metaphor when getting into the complicated stuff
+
+lets make two new classes:
+
+public class Base
+public class Derived : Base
+They can do whatever you like
+
+Now lets define two functions
+
+public Base DoSomething(int variable)
+{
+    return (Base)DoSomethingElse(variable);
+}  
+public Derived DoSomethingElse(int variable)
+{
+    // Do stuff 
+}
+This is kind of like how "out" works you should always be able to use a derived class as if it were a base class, lets apply this to an interface
+
+interface MyInterface<T>
+{
+    T MyFunction(int variable);
+}
+The key difference between out/in is when the Generic is used as a return type or a method parameter, this the the former case.
+
+lets define a class that implements this interface:
+
+public class Thing<T>: MyInterface<T> { }
+then we create two objects:
+
+MyInterface<Base> base = new Thing<Base>;
+MyInterface<Derived> derived = new Thing<Derived>;
+If you were do this:
+
+base = derived;
+You would get an error like "cannot implicitly convert from..."
+
+You have two choices, 1) explicitly convert them or, 2) tell the complier to implicitly convert them.
+
+base = (MyInterface<Base>)derived; // #1
+or
+
+interface MyInterface<out T>  // #2
+{
+    T MyFunction(int variable);
+}
+The second case comes in to play if your interface looks like this:
+
+interface MyInterface<T>
+{
+    int MyFunction(T variable); // T is now a parameter
+}
+relating it to the two functions again
+
+public int DoSomething(Base variable)
+{
+    // Do stuff
+}  
+public int DoSomethingElse(Derived variable)
+{
+    return DoSomething((Base)variable);
+}
+hopefully you see how the situation has reversed but is essentially the same type of conversion.
+
+Using the same classes again
+
+public class Base
+public class Derived : Base
+public class Thing<T>: MyInterface<T> { }
+and the same objects
+
+MyInterface<Base> base = new Thing<Base>;
+MyInterface<Derived> derived = new Thing<Derived>;
+if you try to set them equal
+
+base = derived;
+your complier will yell at you again, you have the same options as before
+
+base = (MyInterface<Base>)derived;
+or
+
+interface MyInterface<in T> //changed
+{
+    int MyFunction(T variable); // T is still a parameter
+}
+Basically use out when the generic is only going to be used as a return type of the interface methods. 
+Use in when it is going to be used as a Method parameter. The same rules apply when using delegates too.
+
+There are strange exceptions but I'm not going to worry about them here.
+
+
+Category theory is sometimes called 'general abstract nonsense', but it can actually be useful!
+In C# 4.0, we can annotate generic type parameters with out and in annotations to specify whether they should behave
+covariantly or contravariantly. This is mainly useful when using already defined standard interfaces. 
+
+Covariance means that you can use IEnumerable<string> in place where IEnumerable<object> is expected. 
+Contravariance allows you to pass IComparable<object> as an argument of a method taking IComparable<string>.
+ 

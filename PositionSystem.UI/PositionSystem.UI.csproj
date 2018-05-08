@@ -54,6 +54,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="IDataErrorSample.xaml.cs">
+      <DependentUpon>IDataErrorSample.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ViewModels\PersonViewModel.cs" />
+    <Page Include="IDataErrorSample.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -76,6 +84,7 @@
     <Compile Include="MainWindow2.xaml.cs">
       <DependentUpon>MainWindow2.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Models\Person.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -102,9 +111,13 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Models\" />
-    <Folder Include="ViewModels\" />
-    <Folder Include="Views\" />
+    <Resource Include="Views\WPF_quest.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Views\CovarianceContravariance.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Views\CSharp.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
